@@ -1,0 +1,48 @@
+name:                taskForce
+version:             0.1.0.0
+github:              "PeteTownshend/taskForce"
+license:             BSD3
+author:              "Volker Bardenhorst"
+maintainer:          "volker-bardenhorst@t-online.de"
+copyright:           "BCM"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            not sure
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/PeteTownshend/taskForce#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+
+executables:
+  taskForce-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - taskForce
+
+tests:
+  taskForce-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - taskForce
