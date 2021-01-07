@@ -83,4 +83,4 @@ main = do
         run = do
             result <- runCLI "" settings root
             either (error.show) return result
-        settings = def { getBanner = "CLI for task management", getHistory = Just "taskForceCLI.history" }
+        settings = def { getBanner = "CLI for task management", getHistory = Just ".taskForceCLI.history" }

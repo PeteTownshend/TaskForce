@@ -22,7 +22,6 @@ source-repository head
 library
   exposed-modules:
       Lib
-      Domain
   other-modules:
       Paths_taskForce
   hs-source-dirs:
