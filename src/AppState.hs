@@ -1,75 +1,47 @@
-{-# LANGUAGE FlexibleContexts #-}
-
 module AppState
     ( AppState (AppState, active, tasks)
-    , StateM
-    , parseString
+    , activeTask
     , getDescription
     , setDescription
-    , getTasks
-    , getTaskHistory
+    , getHistory
+    , updateHistory
     ) where
 
 import Task
-import Control.Monad.IO.Class       (liftIO)
-import Control.Monad.State.Strict   (StateT, gets, modify)
-import Data.Maybe                   (fromMaybe, isJust)
-import System.Console.StructuredCLI
-import Text.Read                    (readMaybe)
 import qualified Data.Map as Map
-import Data.Map                     (Map, insert, lookup, delete, toList)
-import Data.Time                    (ZonedTime, getZonedTime, zonedTimeToUTC)
+import Data.Map                     (Map, insert, findWithDefault)
+import Data.Time                    (ZonedTime)
 
 data AppState = AppState { 
-      active :: ID
-    , tasks :: Map ID Task
+      active :: String
+    , tasks :: Map String Task
     } deriving (Show, Read)
 
-type StateM = StateT AppState IO
-
-parseString :: Validator StateM String
-parseString = return . readMaybe
-
-activeTask :: StateM (ID, Maybe Task, Map ID Task)
-activeTask = do
-    id <- gets active
-    tasks <- gets tasks
-    let mTask = Map.lookup id tasks
-    let remainingTasks = delete id tasks
-    return (id, mTask, remainingTasks)
-
-updateHistory :: Task -> Task
-updateHistory task = undefined
-
-getDescription :: CommandsT StateM ()
-getDescription = command "description" "returns a more detailed description of the task" $ do
-    (_, mTask, _) <- activeTask
-    liftIO . putStrLn $ show $ fromMaybe "description is missing" (fmap description mTask)
-    return NoAction
-
-getTaskHistory :: CommandsT StateM ()
-getTaskHistory = command "history" "returns this history of a task" $ do
-    (_, mTask, _) <- activeTask
-    let hstry = fromMaybe [] (fmap history mTask)
-    mapM_ (liftIO . putStrLn) (map toString hstry)
-    return NoAction
+activeTask :: AppState -> (String, Task)
+activeTask (AppState id tasks) = (id, task)
     where
-        toString (timeStamp, action, message) = show timeStamp ++ " " ++ show action ++ ": " ++ message
+        task = findWithDefault defaultTask id tasks
 
-setDescription :: CommandsT StateM ()
-setDescription = param "set" "<'description'>" parseString setDesc
+getDescription :: AppState -> String
+getDescription appState = description task
     where
-        setDesc d = do
-            (id, mTask, remainingTasks) <- activeTask
-            let task = fromMaybe (Task { description = "failed to set description '" ++ d ++ "'", history = [] }) (fmap (\t -> t { description = d }) mTask)
-            modify $ \s -> s { tasks = insert id task remainingTasks }
-            return NoAction
+        (_, task) = activeTask appState
 
-getTasks :: CommandsT StateM ()
-getTasks = command "tasks" "returns a list of all tasks" $ do
-    tasks <- gets tasks
-    let list = toList tasks
-    mapM_ (liftIO . putStrLn) (map toString list)
-    return ToRoot
+setDescription :: String -> AppState -> AppState
+setDescription dscrptn appState = appState { tasks = insert id task' allTasks }
     where
-        toString (id, task) = id ++ " -> " ++ (description task)
+        (id, task) = activeTask appState
+        allTasks = tasks appState
+        task' = task { description = dscrptn }
+            
+getHistory :: AppState -> History
+getHistory appState = history task
+    where
+        (_, task) = activeTask appState
+
+updateHistory :: ZonedTime -> Event -> AppState -> AppState
+updateHistory timeStamp event appState = appState { tasks = insert id task' allTasks }
+    where
+        (id, task) = activeTask appState
+        allTasks = tasks appState
+        task' = updateTaskHistory timeStamp event task 

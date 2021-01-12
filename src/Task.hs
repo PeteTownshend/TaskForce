@@ -1,27 +1,34 @@
 module Task
-    ( ID
-    , Message
-    , Event (Start, End)
+    ( Event (Start, End, Log)
+    , History
     , Task (Task, description, history)
+    , defaultTask
+    , updateTaskHistory
     ) where
 
-import Data.Maybe                   (fromMaybe, isJust)
-import Data.Time                    (ZonedTime, getZonedTime)
-
-type ID = String
-type Message = String
+import Data.Time                    (ZonedTime)
 
 data Event
     = Start
     | End
+    | Log String
     deriving (Show, Read, Eq)
+
+type History = [(ZonedTime, Event)]
 
 data Task = Task { 
       description :: String
-    , history :: [(ZonedTime, Event, Message)]
+    , history :: History
     } deriving (Show, Read)
 
+defaultTask :: Task
+defaultTask = Task { 
+      description = "description is missing"
+    , history = [] 
+    }
 
-
-updateHistory :: Task -> Task
-updateHistory task = undefined
+updateTaskHistory :: ZonedTime -> Event -> Task -> Task
+updateTaskHistory timeStamp event task = task { history = entry : hstry }
+    where 
+        entry = (timeStamp, event)
+        hstry = history task
