@@ -1,10 +1,9 @@
-import Test.Hspec
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
+{-import Test.Hspec
 import Task
 import AppState
 import StateM
-import qualified Data.Map as Map
-import Data.Map                     (Map, findWithDefault, empty)
 import Data.Time                    (getZonedTime)
 
 main :: IO ()
@@ -28,6 +27,7 @@ main = hspec $ do
                 oldActive = active appState
             
             --newActive `shouldBe` oldActive
+            --newActive `shouldBe` oldActive
             --(description newTask) `shouldBe` (description task)
             --(head $ history newTask) `shouldBe` (history task)
-            2 * 3 `shouldBe` 6
+            2 * 3 `shouldBe` 6-}

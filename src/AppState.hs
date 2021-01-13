@@ -1,6 +1,12 @@
 module AppState
-    ( AppState (AppState, active, tasks)
+    ( AppState
+    , add
+    , goFwd
+    , goBwd
+    , goStart
+    , modify
     , activeTask
+    , activateTask
     , getDescription
     , setDescription
     , getHistory
@@ -8,40 +14,46 @@ module AppState
     ) where
 
 import Task
-import qualified Data.Map as Map
-import Data.Map                     (Map, insert, findWithDefault)
-import Data.Time                    (ZonedTime)
+import Data.Time                    (LocalTime)
 
-data AppState = AppState { 
-      active :: String
-    , tasks :: Map String Task
-    } deriving (Show, Read)
+type AppState = ([Task], [Task])
 
-activeTask :: AppState -> (String, Task)
-activeTask (AppState id tasks) = (id, task)
+add :: Task -> AppState -> AppState
+add task (xs, bs) = (task : xs, bs)
+
+goFwd :: AppState -> AppState
+goFwd ([], bs) = ([], bs)
+goFwd (x : xs, bs) = (xs, x : bs)
+
+goBwd :: AppState -> AppState
+goBwd (xs, []) = (xs, [])
+goBwd (xs, b : bs) = (b : xs, bs)
+
+goStart :: AppState -> AppState
+goStart (xs, []) = (xs, [])
+goStart appState = (goStart . goBwd) appState
+
+modify :: (Task -> Task) -> (AppState -> AppState)
+modify _ ([], bs) = ([], bs)
+modify f (task : tasks, bs) = ((f task) : tasks, bs)
+
+activeTask :: AppState -> Task
+activeTask = head . fst
+
+activateTask :: Tag -> AppState -> AppState
+activateTask lookupTag appState = activate $ goStart appState
     where
-        task = findWithDefault defaultTask id tasks
+        check state = (tag $ activeTask state) == lookupTag
+        activate state = if (check state) then state else (activate $ goFwd state)
 
 getDescription :: AppState -> String
-getDescription appState = description task
-    where
-        (_, task) = activeTask appState
+getDescription = description . activeTask
 
 setDescription :: String -> AppState -> AppState
-setDescription dscrptn appState = appState { tasks = insert id task' allTasks }
-    where
-        (id, task) = activeTask appState
-        allTasks = tasks appState
-        task' = task { description = dscrptn }
+setDescription dscrptn = modify (\t -> t { description = dscrptn })
             
 getHistory :: AppState -> History
-getHistory appState = history task
-    where
-        (_, task) = activeTask appState
+getHistory = history . activeTask
 
-updateHistory :: ZonedTime -> Event -> AppState -> AppState
-updateHistory timeStamp event appState = appState { tasks = insert id task' allTasks }
-    where
-        (id, task) = activeTask appState
-        allTasks = tasks appState
-        task' = updateTaskHistory timeStamp event task 
+updateHistory :: LocalTime -> Event -> AppState -> AppState
+updateHistory timeStamp event = modify (updateTaskHistory timeStamp event)

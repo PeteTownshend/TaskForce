@@ -9,16 +9,13 @@ module StateM
 
 import Task
 import AppState
-import qualified Data.Map as Map
-import Data.Map                     (Map, toList)
-import Data.Time                    (ZonedTime)
-import Control.Monad.State.Strict   (StateT, gets, modify)
-import Data.Time                    (ZonedTime)
+import Data.Time                    (LocalTime)
+import Control.Monad.State.Strict   (StateT, gets)
 
 type StateM = StateT AppState IO
 
-getTasksM :: StateM [(String, Task)]
-getTasksM = liftM $ toList . tasks
+getTasksM :: StateM [Task]
+getTasksM = liftM $ \(xs, bs) -> xs ++ bs
 
 getDescriptionM :: StateM String
 getDescriptionM = liftM getDescription
@@ -26,10 +23,10 @@ getDescriptionM = liftM getDescription
 setDescriptionM :: String -> StateM AppState
 setDescriptionM = liftM . setDescription
 
-getHistoryM :: StateM [(ZonedTime, Event)]
+getHistoryM :: StateM History
 getHistoryM = liftM getHistory
 
-updateHistoryM :: ZonedTime -> Event -> StateM AppState
+updateHistoryM :: LocalTime -> Event -> StateM AppState
 updateHistoryM timeStamp event = liftM $ updateHistory timeStamp event
 
 liftM :: (AppState -> a) -> StateM a

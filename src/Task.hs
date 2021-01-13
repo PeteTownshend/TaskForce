@@ -1,12 +1,13 @@
 module Task
     ( Event (Start, End, Log)
     , History
-    , Task (Task, description, history)
-    , defaultTask
+    , Tag
+    , Task (Task, tag, description, history)
     , updateTaskHistory
+    , getLocalTime
     ) where
 
-import Data.Time                    (ZonedTime)
+import Data.Time (LocalTime, getCurrentTime, getTimeZone, utcToLocalTime)
 
 data Event
     = Start
@@ -14,21 +15,23 @@ data Event
     | Log String
     deriving (Show, Read, Eq)
 
-type History = [(ZonedTime, Event)]
+type History = [(LocalTime, Event)]
+type Tag = String
 
 data Task = Task { 
-      description :: String
+      tag :: Tag
+    , description :: String
     , history :: History
-    } deriving (Show, Read)
+    } deriving (Show, Read, Eq)
 
-defaultTask :: Task
-defaultTask = Task { 
-      description = "description is missing"
-    , history = [] 
-    }
-
-updateTaskHistory :: ZonedTime -> Event -> Task -> Task
+updateTaskHistory :: LocalTime -> Event -> Task -> Task
 updateTaskHistory timeStamp event task = task { history = entry : hstry }
     where 
         entry = (timeStamp, event)
         hstry = history task
+
+getLocalTime :: IO LocalTime
+getLocalTime = do
+    utcTime <- getCurrentTime
+    timeZone <- getTimeZone utcTime
+    return $ utcToLocalTime timeZone utcTime
