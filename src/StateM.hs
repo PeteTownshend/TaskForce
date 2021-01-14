@@ -15,7 +15,7 @@ import Control.Monad.State.Strict   (StateT, gets)
 type StateM = StateT AppState IO
 
 getTasksM :: StateM [Task]
-getTasksM = liftM $ \(xs, bs) -> xs ++ bs
+getTasksM = liftM getTasks
 
 getDescriptionM :: StateM String
 getDescriptionM = liftM getDescription

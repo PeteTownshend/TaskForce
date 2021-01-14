@@ -1,41 +1,40 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Lib
-    ( --taskC
-    getTasksC
+    ( taskC
+    , getTasksC
     ) where
-
 
 import Task
 import AppState
 import StateM
 import System.Console.StructuredCLI
 import Text.Read                    (readMaybe)
-import Data.Maybe                   (isJust, fromMaybe)
+import Data.Maybe                   (fromMaybe)
 import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.State.Strict   (put)
-import Control.Monad.State.Strict   (gets, put)
+import Control.Monad.State.Strict   (get, put)
 
-{-taskC :: CommandsT StateM ()
+taskC :: CommandsT StateM ()
 taskC = param "task" "<'task-id'>" parseString setTask >+ do
     getDescriptionC
     setDescriptionC
     getHistoryC
-    startC
-    endC
     logC
     rootC
     where 
         setTask id = do
-            tasks <- gets tasks
-            let task = findWithDefault defaultTask id tasks
-            timeStamp <- liftIO getZonedTime
-            let task' = updateTaskHistory timeStamp Start task
-            -- put AppState { active = id, tasks = insert id task' tasks }
-            return NewLevel-}
+            appState <- get
+            timeStamp <- liftIO getLocalTime
+            let defaultTask = Task { tag = id, description = "description not given yet", history = [] }
+                defaultAppState = fromMaybe (defaultTask, [], []) (add defaultTask appState)
+                appState' = fromMaybe defaultAppState (activateTask id appState)
+                appState'' = updateHistory timeStamp Start appState'
+            put appState''                
+            return NewLevel
 
 rootC :: CommandsT StateM ()
-rootC = command "root" "returns to top level" $ do
+rootC = command "exit" "returns to top level" $ do
     timeStamp <- liftIO getLocalTime
     appState <- updateHistoryM timeStamp End
     put appState
@@ -45,7 +44,7 @@ getTasksC :: CommandsT StateM ()
 getTasksC = command "tasks" "returns a list of all tasks" $ do
     tasks <- getTasksM
     mapM_ (liftIO . putStrLn) (map toString tasks)
-    return ToRoot
+    return NoAction
     where
         toString task = (tag task) ++ " -> " ++ (description task)
 
@@ -71,12 +70,6 @@ getHistoryC = command "history" "returns this history of a task" $ do
     where
         toString (timeStamp, action) = show timeStamp ++ ": " ++ show action
 
-startC :: CommandsT StateM ()
-startC = dropEvent Start
-    
-endC :: CommandsT StateM ()
-endC = dropEvent End
-
 logC :: CommandsT StateM ()
 logC = param "log" "<'message'>" parseString setMessage
     where 
@@ -88,13 +81,6 @@ logC = param "log" "<'message'>" parseString setMessage
 
 parseString :: Validator StateM String
 parseString = return . readMaybe
-
-dropEvent :: Event -> CommandsT StateM ()
-dropEvent event = command (show event) ("tags the " ++ show event ++ " of a task") $ do
-    timeStamp <- liftIO getLocalTime
-    appState <- updateHistoryM timeStamp event
-    put appState
-    return NoAction
 
 admin :: CommandsT StateM ()
 admin = custom "admin" "administrations of tasks" (parseOneOf options "getDescription to admin") always $

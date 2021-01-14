@@ -1,11 +1,13 @@
 module AppState
     ( AppState
+    , getTasks
     , add
     , goFwd
     , goBwd
     , goStart
     , modify
     , activeTask
+    , exists
     , activateTask
     , getDescription
     , setDescription
@@ -15,36 +17,53 @@ module AppState
 
 import Task
 import Data.Time                    (LocalTime)
+import Data.Maybe                   (maybe)
 
-type AppState = ([Task], [Task])
+type AppState = (Task, [Task], [Task])
 
-add :: Task -> AppState -> AppState
-add task (xs, bs) = (task : xs, bs)
+getTasks :: AppState -> [Task]
+getTasks (a, xs, bs) = a : xs ++ bs
 
-goFwd :: AppState -> AppState
-goFwd ([], bs) = ([], bs)
-goFwd (x : xs, bs) = (xs, x : bs)
+add :: Task -> AppState -> Maybe AppState
+add task appState = 
+    if exists (tag task) appState
+    then Nothing
+    else Just $ plus appState
+    where 
+        plus (x, xs, bs) = (task, x : xs, bs)
 
-goBwd :: AppState -> AppState
-goBwd (xs, []) = (xs, [])
-goBwd (xs, b : bs) = (b : xs, bs)
+goFwd :: AppState -> Maybe AppState
+goFwd (_, [], _) = Nothing
+goFwd (b, a : xs, bs) = Just (a, xs, b : bs)
+
+goBwd :: AppState -> Maybe AppState
+goBwd (_, _, []) = Nothing
+goBwd (x, xs, a : bs) = Just (a, x : xs, bs)
 
 goStart :: AppState -> AppState
-goStart (xs, []) = (xs, [])
-goStart appState = (goStart . goBwd) appState
+goStart (a, xs, []) = (a, xs, [])
+goStart appState = maybe appState goStart (goBwd appState)
 
 modify :: (Task -> Task) -> (AppState -> AppState)
-modify _ ([], bs) = ([], bs)
-modify f (task : tasks, bs) = ((f task) : tasks, bs)
+modify f (task, xs, bs) = (f task, xs, bs)
 
 activeTask :: AppState -> Task
-activeTask = head . fst
+activeTask (task, _, _) = task
 
-activateTask :: Tag -> AppState -> AppState
+exists :: Tag -> AppState -> Bool
+exists lookupTag appState = check $ goStart appState
+    where
+        checkActive state = (tag $ activeTask state) == lookupTag
+        check state = checkActive state || (maybe False check (goFwd state))
+
+activateTask :: Tag -> AppState -> Maybe AppState
 activateTask lookupTag appState = activate $ goStart appState
     where
-        check state = (tag $ activeTask state) == lookupTag
-        activate state = if (check state) then state else (activate $ goFwd state)
+        checkActive state = (tag $ activeTask state) == lookupTag
+        activate state = 
+            if checkActive state
+            then Just state 
+            else (goFwd state) >>= activate
 
 getDescription :: AppState -> String
 getDescription = description . activeTask
