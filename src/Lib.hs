@@ -3,6 +3,8 @@
 module Lib
     ( taskC
     , getTasksC
+    , stateFile
+    , shutdownC
     ) where
 
 import Task
@@ -14,6 +16,11 @@ import Data.Maybe                   (fromMaybe)
 import Control.Monad.IO.Class       (liftIO)
 import Control.Monad.State.Strict   (put)
 import Control.Monad.State.Strict   (get, put)
+import System.IO                    (openTempFile, hPutStr, hClose)
+import System.Directory             (removeFile, renameFile)
+
+stateFile :: String
+stateFile = ".taskForceCLI.state"
 
 taskC :: CommandsT StateM ()
 taskC = param "task" "<'task-id'>" parseString setTask >+ do
@@ -32,6 +39,20 @@ taskC = param "task" "<'task-id'>" parseString setTask >+ do
                 appState'' = updateHistory timeStamp Start appState'
             put appState''                
             return NewLevel
+
+shutdownC :: CommandsT StateM ()
+shutdownC = command "shutdown" "exits application and stores state" $ do
+    timeStamp <- liftIO getLocalTime
+    appState <- get
+    liftIO $ store appState
+    return NoAction
+    where 
+        store state = do 
+            (tempName, tempHandle) <- openTempFile "." "temp"
+            hPutStr tempHandle $ show state
+            hClose tempHandle
+            removeFile stateFile
+            renameFile tempName stateFile
 
 rootC :: CommandsT StateM ()
 rootC = command "exit" "returns to top level" $ do
@@ -81,10 +102,3 @@ logC = param "log" "<'message'>" parseString setMessage
 
 parseString :: Validator StateM String
 parseString = return . readMaybe
-
-admin :: CommandsT StateM ()
-admin = custom "admin" "administrations of tasks" (parseOneOf options "getDescription to admin") always $
-    const (return NoAction)
-    where 
-        options = ["delete"]
-        always  = return True

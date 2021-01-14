@@ -9,5 +9,4 @@ description could be added afterwards, currently just one word possible
 	
 TODO: 
 	description should allow one or more sentences
-	serializing and deserializing of AppState
 	shutdown 
