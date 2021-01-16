@@ -3,7 +3,7 @@
 module Lib
     ( taskC
     , getTasksC
-    , stateFile
+    , appStateFileName
     , shutdownC
     ) where
 
@@ -18,9 +18,10 @@ import Control.Monad.State.Strict   (put)
 import Control.Monad.State.Strict   (get, put)
 import System.IO                    (openTempFile, hPutStr, hClose)
 import System.Directory             (removeFile, renameFile)
+import Control.Exception            (bracketOnError)
 
-stateFile :: String
-stateFile = ".taskForceCLI.state"
+appStateFileName :: String
+appStateFileName = ".taskForceCLI.state"
 
 taskC :: CommandsT StateM ()
 taskC = param "task" "<'task-id'>" parseString setTask >+ do
@@ -48,11 +49,15 @@ shutdownC = command "shutdown" "exits application and stores state" $ do
     return NoAction
     where 
         store state = do 
-            (tempName, tempHandle) <- openTempFile "." "temp"
-            hPutStr tempHandle $ show state
-            hClose tempHandle
-            removeFile stateFile
-            renameFile tempName stateFile
+            bracketOnError (openTempFile "." "temp") (
+                \(tempName, tempHandle) -> do
+                    hClose tempHandle
+                    removeFile tempName) (
+                \(tempName, tempHandle) -> do
+                    hPutStr tempHandle $ show state        
+                    hClose tempHandle
+                    removeFile appStateFileName
+                    renameFile tempName appStateFileName)
 
 rootC :: CommandsT StateM ()
 rootC = command "exit" "returns to top level" $ do
