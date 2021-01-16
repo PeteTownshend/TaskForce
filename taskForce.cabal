@@ -82,7 +82,6 @@ test-suite taskForce-test
     , time >= 1.9 && < 1.10
     , taskForce
     , hspec
-    , hspec-core
-    , hspec-discover
-    , hspec-expectations
+  build-tool-depends:
+    hspec-discover:hspec-discover
   default-language: Haskell2010
