@@ -5,6 +5,7 @@ module Lib
     , getTasksC
     , appStateFileName
     , shutdownC
+    , parseString
     ) where
 
 import Task
@@ -19,6 +20,7 @@ import Control.Monad.State.Strict   (get, put)
 import System.IO                    (openTempFile, hPutStr, hClose)
 import System.Directory             (removeFile, renameFile)
 import Control.Exception            (bracketOnError)
+import Data.Char                    (isSpace)
 
 appStateFileName :: String
 appStateFileName = ".taskForceCLI.state"
@@ -81,7 +83,7 @@ getDescriptionC = command "description" "returns a more detailed description of 
     return NoAction
 
 setDescriptionC :: CommandsT StateM ()
-setDescriptionC = param "set" "<'description'>" parseString set 
+setDescriptionC = paramSentence "set" "<'description'>" parseString set 
     where
         set dscrptn = do
             appState <- setDescriptionM dscrptn
@@ -107,3 +109,44 @@ logC = param "log" "<'message'>" parseString setMessage
 
 parseString :: Validator StateM String
 parseString = return . readMaybe
+
+paramSentence :: (Monad m) => String -- ^ Command keyword
+                   -> String         -- ^ Help text for this command (including argument description)
+                   -> Validator m a  -- ^ Monadic validator (in the "user" monad)
+                   -> Handler m a    -- ^ Handling action. Takes the validator output as argument
+                   -> CommandsT m ()
+paramSentence label hint validator handler =
+    paramSentence' label hint validator (return True) handler
+
+paramSentence' :: (Monad m) => String -- ^ Command keyword
+                    -> String         -- ^ Help text for this command (including argument description)
+                    -> Validator m a  -- ^ Monadic validator (in the "user" monad)
+                    -> m Bool         -- ^ Enable action in the "user" monad
+                    -> Handler m a    -- ^ Handling action. Takes the validator output as argument
+                    -> CommandsT m ()
+paramSentence' label hint validator enable handler = do
+  custom label hint parser enable handler
+         where parser = sentenceParser hint validator
+
+sentenceParser :: Monad m => String -> (String -> m (Maybe a)) -> Node m -> String -> m (ParseResult a)
+sentenceParser hint validator = parseParam -.- labelParser
+    where parseParam  = (=<<) parseParam'
+          parseParam' (Done _ matched rest) =
+              case rest of
+                "?" ->
+                  return $ Fail hint rest
+                "" ->
+                  return $ Partial [("", hint)] ""
+                word -> do
+                  v <- validator word
+                  return $ maybe (badArg rest) (\x -> Done x (matched ++ ' ':word) "") v
+          parseParam' (Fail x y) =
+              return $ Fail x y
+          parseParam' (Partial x y) =
+              return $ Partial x y
+          parseParam' NoMatch = return NoMatch
+          badArg = Fail hint
+
+infixr 9 -.-
+(-.-) :: (b -> c) -> (a -> a1 -> b) -> a -> a1 -> c
+(-.-) = (.).(.)
