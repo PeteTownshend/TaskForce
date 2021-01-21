@@ -1,13 +1,7 @@
 module AppState
     ( AppState
-    , getTasks
-    , add
-    , goFwd
-    , goBwd
-    , goStart
-    , modify
-    , activeTask
-    , exists
+    , empty
+    , addTask
     , activateTask
     , getDescription
     , setDescription
@@ -15,64 +9,30 @@ module AppState
     , updateHistory
     ) where
 
+import Zipper
 import Task
 import Data.Time                    (LocalTime)
 import Data.Maybe                   (maybe)
 
-type AppState = (Task, [Task], [Task])
+type AppState = Zipper Task
 
-getTasks :: AppState -> [Task]
-getTasks (a, xs, bs) = a : xs ++ bs
+empty :: AppState
+empty = ([], [])
 
-add :: Task -> AppState -> Maybe AppState
-add task appState = 
-    if exists (tag task) appState
-    then Nothing
-    else Just $ plus appState
-    where 
-        plus (x, xs, bs) = (task, x : xs, bs)
-
-goFwd :: AppState -> Maybe AppState
-goFwd (_, [], _) = Nothing
-goFwd (b, a : xs, bs) = Just (a, xs, b : bs)
-
-goBwd :: AppState -> Maybe AppState
-goBwd (_, _, []) = Nothing
-goBwd (x, xs, a : bs) = Just (a, x : xs, bs)
-
-goStart :: AppState -> AppState
-goStart (a, xs, []) = (a, xs, [])
-goStart appState = maybe appState goStart (goBwd appState)
-
-modify :: (Task -> Task) -> (AppState -> AppState)
-modify f (task, xs, bs) = (f task, xs, bs)
-
-activeTask :: AppState -> Task
-activeTask (task, _, _) = task
-
-exists :: Tag -> AppState -> Bool
-exists lookupTag appState = check $ goStart appState
-    where
-        checkActive state = (tag $ activeTask state) == lookupTag
-        check state = checkActive state || (maybe False check (goFwd state))
+addTask :: Task -> AppState -> Maybe AppState
+addTask = add (\task -> \task' -> tag task == tag task')
 
 activateTask :: Tag -> AppState -> Maybe AppState
-activateTask lookupTag appState = activate $ goStart appState
-    where
-        checkActive state = (tag $ activeTask state) == lookupTag
-        activate state = 
-            if checkActive state
-            then Just state 
-            else (goFwd state) >>= activate
+activateTask tag' = slideTo (\task -> tag task == tag')
 
 getDescription :: AppState -> String
-getDescription = description . activeTask
+getDescription = (maybe "no active task" description) . slider
 
 setDescription :: String -> AppState -> AppState
 setDescription dscrptn = modify (\t -> t { description = dscrptn })
             
 getHistory :: AppState -> History
-getHistory = history . activeTask
+getHistory = (maybe [] history) . slider
 
 updateHistory :: LocalTime -> Event -> AppState -> AppState
-updateHistory timeStamp event = modify (updateTaskHistory timeStamp event)
+updateHistory timeStamp = modify . (updateTaskHistory timeStamp)

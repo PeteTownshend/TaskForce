@@ -7,6 +7,7 @@ module StateM
     , updateHistoryM
     ) where
 
+import Zipper
 import Task
 import AppState
 import Data.Time                    (LocalTime)
@@ -15,7 +16,7 @@ import Control.Monad.State.Strict   (StateT, gets)
 type StateM = StateT AppState IO
 
 getTasksM :: StateM [Task]
-getTasksM = liftM getTasks
+getTasksM = liftM toList
 
 getDescriptionM :: StateM String
 getDescriptionM = liftM getDescription

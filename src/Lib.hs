@@ -37,7 +37,7 @@ taskC = param "task" "<'task-id'>" parseString setTask >+ do
             appState <- get
             timeStamp <- liftIO getLocalTime
             let defaultTask = Task { tag = id, description = "description not given yet", history = [] }
-                defaultAppState = fromMaybe (defaultTask, [], []) (add defaultTask appState)
+                defaultAppState = fromMaybe ([], [defaultTask]) (addTask defaultTask appState)
                 appState' = fromMaybe defaultAppState (activateTask id appState)
                 appState'' = updateHistory timeStamp Start appState'
             put appState''                

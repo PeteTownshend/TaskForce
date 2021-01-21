@@ -25,6 +25,7 @@ library
       Task
       AppState
       StateM
+      Zipper
   other-modules:
       Paths_taskForce
   hs-source-dirs:
@@ -68,6 +69,7 @@ test-suite taskForce-test
       Paths_taskForce
     , AppStateSpec
     , TaskSpec
+    , ZipperSpec
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
