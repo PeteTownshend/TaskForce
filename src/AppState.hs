@@ -1,18 +1,20 @@
-module AppState
-    ( AppState
-    , empty
-    , addTask
-    , activateTask
-    , getDescription
-    , setDescription
-    , getHistory
-    , updateHistory
+module AppState( 
+    AppState,
+    empty,
+    addTask,
+    activateTask,
+    newTask,
+    deleteTask,
+    getDescription,
+    setDescription,
+    getHistory,
+    updateHistory
     ) where
 
 import Zipper
 import Task
 import Data.Time                    (LocalTime)
-import Data.Maybe                   (maybe)
+import Data.Maybe                   (maybe, fromMaybe)
 
 type AppState = Zipper Task
 
@@ -24,6 +26,14 @@ addTask = add (\task -> \task' -> tag task == tag task')
 
 activateTask :: Tag -> AppState -> Maybe AppState
 activateTask tag' = slideTo (\task -> tag task == tag')
+
+newTask :: LocalTime -> Tag -> AppState -> AppState
+newTask timeStamp id appState = fromMaybe appState (addTask task appState)
+    where
+        task = Task { tag = id, description = "description not given yet", history = [(timeStamp, Created)] }
+
+deleteTask :: Tag -> AppState -> AppState
+deleteTask id = prune ((/=) id . tag)
 
 getDescription :: AppState -> String
 getDescription = (maybe "no active task" description) . slider

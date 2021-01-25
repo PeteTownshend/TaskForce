@@ -1,10 +1,12 @@
-module StateM
-    ( StateM
-    , getTasksM
-    , getDescriptionM
-    , setDescriptionM
-    , getHistoryM
-    , updateHistoryM
+module StateM ( 
+    StateM, 
+    getTasksM,
+    newTaskM,
+    deleteTaskM,
+    getDescriptionM,
+    setDescriptionM,
+    getHistoryM,
+    updateHistoryM
     ) where
 
 import Zipper
@@ -17,6 +19,12 @@ type StateM = StateT AppState IO
 
 getTasksM :: StateM [Task]
 getTasksM = liftM toList
+
+newTaskM :: LocalTime -> Tag -> StateM AppState
+newTaskM timeStamp tag = liftM $ newTask timeStamp tag
+
+deleteTaskM :: Tag -> StateM AppState
+deleteTaskM = liftM . deleteTask
 
 getDescriptionM :: StateM String
 getDescriptionM = liftM getDescription

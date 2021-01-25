@@ -1,16 +1,16 @@
-module Task
-    ( Event (Start, End, Log)
-    , History
-    , Tag
-    , Task (Task, tag, description, history)
-    , updateTaskHistory
-    , getLocalTime
+module Task ( 
+    Event (Created, Start, End, Log),
+    History,
+    Tag,
+    Task (Task, tag, description, history),
+    updateTaskHistory
     ) where
 
-import Data.Time (LocalTime, getCurrentTime, getTimeZone, utcToLocalTime)
+import Data.Time (LocalTime)
 
 data Event
-    = Start
+    = Created
+    | Start
     | End
     | Log String
     deriving (Show, Read, Eq)
@@ -29,9 +29,3 @@ updateTaskHistory timeStamp event task = task { history = entry : hstry }
     where 
         entry = (timeStamp, event)
         hstry = history task
-
-getLocalTime :: IO LocalTime
-getLocalTime = do
-    utcTime <- getCurrentTime
-    timeZone <- getTimeZone utcTime
-    return $ utcToLocalTime timeZone utcTime

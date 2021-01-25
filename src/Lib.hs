@@ -1,11 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Lib
-    ( taskC
-    , getTasksC
-    , appStateFileName
-    , shutdownC
-    , parseString
+module Lib ( 
+    appStateFileName,
+    taskCommand,
+    tasksCommand,
+    deleteCommand,
+    reportCommand,
+    quitCommand,
+    runCommand,
+    getLocalTime
     ) where
 
 import Task
@@ -21,30 +24,51 @@ import System.IO                    (openTempFile, hPutStr, hClose)
 import System.Directory             (removeFile, renameFile)
 import Control.Exception            (bracketOnError)
 import Data.Char                    (isSpace)
+import Data.Time
+import Report
 
 appStateFileName :: String
 appStateFileName = ".taskForceCLI.state"
 
-taskC :: CommandsT StateM ()
-taskC = param "task" "<'task-id'>" parseString setTask >+ do
-    getDescriptionC
-    setDescriptionC
-    getHistoryC
-    logC
-    rootC
+getLocalTime :: IO LocalTime
+getLocalTime = do
+    utcTime <- getCurrentTime
+    timeZone <- getTimeZone utcTime
+    return $ utcToLocalTime timeZone utcTime
+
+taskCommand :: CommandsT StateM ()
+taskCommand = param "task" "<'tag'>" parseString setTask
     where 
         setTask id = do
-            appState <- get
             timeStamp <- liftIO getLocalTime
-            let defaultTask = Task { tag = id, description = "description not given yet", history = [] }
-                defaultAppState = fromMaybe ([], [defaultTask]) (addTask defaultTask appState)
-                appState' = fromMaybe defaultAppState (activateTask id appState)
-                appState'' = updateHistory timeStamp Start appState'
-            put appState''                
-            return NewLevel
+            appState <- newTaskM timeStamp id
+            put appState                
+            return NoAction
 
-shutdownC :: CommandsT StateM ()
-shutdownC = command "shutdown" "exits application and stores state" $ do
+tasksCommand :: CommandsT StateM ()
+tasksCommand = command "tasks" "prints a list of all tasks" $ do
+    tasks <- getTasksM
+    mapM_ (liftIO . putStrLn) (map toString tasks)
+    return NoAction
+    where
+        toString task = (tag task) ++ " -> " ++ (description task)
+
+deleteCommand :: CommandsT StateM ()
+deleteCommand = param "delete" "<'tag'>" parseString delete
+    where
+        delete id = do
+            appState <- deleteTaskM id
+            put appState
+            return NoAction
+
+reportCommand :: CommandsT StateM ()
+reportCommand = command "report" "prints a report" $ do
+    appState <- get
+    mapM_ (liftIO . putStrLn) (map show $ reportStrings $ report appState)
+    return NoAction
+
+quitCommand :: CommandsT StateM () -- TODO: exit is missing
+quitCommand = command "quit" "stores state and exits application" $ do
     timeStamp <- liftIO getLocalTime
     appState <- get
     liftIO $ store appState
@@ -61,51 +85,59 @@ shutdownC = command "shutdown" "exits application and stores state" $ do
                     removeFile appStateFileName
                     renameFile tempName appStateFileName)
 
-rootC :: CommandsT StateM ()
-rootC = command "exit" "returns to top level" $ do
-    timeStamp <- liftIO getLocalTime
-    appState <- updateHistoryM timeStamp End
-    put appState
-    return ToRoot
+runCommand :: CommandsT StateM ()
+runCommand = param "run" "<'tag'>" parseString setTask >+ do
+    setDescriptionCommand
+    getDescriptionCommand
+    logCommand
+    getHistoryCommand
+    exitCommand
+    where 
+        setTask id = do
+            timeStamp <- liftIO getLocalTime
+            appState <- newTaskM timeStamp id
+            let appState' = fromMaybe appState' (activateTask id appState)
+                appState'' = updateHistory timeStamp Start appState'
+            put appState''
+            return NewLevel
 
-getTasksC :: CommandsT StateM ()
-getTasksC = command "tasks" "returns a list of all tasks" $ do
-    tasks <- getTasksM
-    mapM_ (liftIO . putStrLn) (map toString tasks)
-    return NoAction
-    where
-        toString task = (tag task) ++ " -> " ++ (description task)
-
-getDescriptionC :: CommandsT StateM ()
-getDescriptionC = command "description" "returns a more detailed description of the task" $ do
-    dscrptn <- getDescriptionM
-    liftIO . putStrLn $ dscrptn
-    return NoAction
-
-setDescriptionC :: CommandsT StateM ()
-setDescriptionC = paramSentence "set" "<'description'>" parseString set 
+setDescriptionCommand :: CommandsT StateM ()
+setDescriptionCommand = paramSentence "set" "<'description'>" parseString set 
     where
         set dscrptn = do
             appState <- setDescriptionM dscrptn
             put appState
             return NoAction
 
-getHistoryC :: CommandsT StateM ()
-getHistoryC = command "history" "returns this history of a task" $ do
-    hstry <- getHistoryM
-    mapM_ (liftIO . putStrLn) (map toString hstry)
+getDescriptionCommand :: CommandsT StateM ()
+getDescriptionCommand = command "description" "returns a more detailed description of the task" $ do
+    dscrptn <- getDescriptionM
+    liftIO . putStrLn $ dscrptn
     return NoAction
-    where
-        toString (timeStamp, action) = show timeStamp ++ ": " ++ show action
 
-logC :: CommandsT StateM ()
-logC = param "log" "<'message'>" parseString setMessage
+logCommand :: CommandsT StateM ()
+logCommand = paramSentence "log" "<'message'>" parseString setMessage
     where 
         setMessage txt = do
             timeStamp <- liftIO getLocalTime
             appState <- updateHistoryM timeStamp (Log txt)
             put appState
             return NoAction
+
+getHistoryCommand :: CommandsT StateM ()
+getHistoryCommand = command "history" "returns this history of a task" $ do
+    hstry <- getHistoryM
+    mapM_ (liftIO . putStrLn) (map toString hstry)
+    return NoAction
+    where
+        toString (timeStamp, action) = showLocalTime timeStamp ++ " > " ++ show action
+
+exitCommand :: CommandsT StateM ()
+exitCommand = command "exit" "returns to top level" $ do
+    timeStamp <- liftIO getLocalTime
+    appState <- updateHistoryM timeStamp End
+    put appState
+    return ToRoot
 
 parseString :: Validator StateM String
 parseString = return . readMaybe

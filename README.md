@@ -1,32 +1,38 @@
 # taskForce
 
-in general cli is working providing
+in general cli is working and provides
 	history
 	tab completion
 	level switches
-description could be added afterwards, currently just one word possible
+	report
+description could be added afterwards
 	
 TODO: 
 	shutdown on ctrl-c
-	creating report
-	add TODO list
 
-> todo <tag> <description> 
-adds Task(tag, description, [(TimeStamp, Created)])
->
-
-> todo <tag>
+> task <tag>
 adds Task(tag, "", [(TimeStamp, Created)])
 >
 
-> todos
-returns list of todos
+> tasks
+prints list of tasks
+>
+
+> delete <tag>
+removes task
+prints "deleted" or "<tag> doesn't exist"
+>
+
+> report
+prints full report on tasks
+>
+
+> quit
+stores application state and stopps application
 >
 
 > run <tag> 
 	runs existing todo or creates a task
-	prints "newly task ..."
-	description is from Todo or not set yet
 	Task(tag, description, [(TimeStamp, Created), (TimeStamp, Start)])
 	run tag >
 
@@ -44,21 +50,8 @@ returns list of todos
 
 	run tag > history
 	returns the history of the running task
-	run tag >	
+	run tag >
 
 	run tag > exit
 	returns to root and adds (TimeStamp, End) to history
 	>
-
-> delete <tag>
-removes task
-prints "deleted" or "<tag> doesn't exist"
->
-
-> report
-prints full report on tasks
->
-
-> quit
-stores application state and stopps application
->

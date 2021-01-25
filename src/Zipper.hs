@@ -6,6 +6,7 @@ module Zipper (
     , slideDown
     , open
     , exists
+    , prune
     , slideTo
     , modify
     , add
@@ -38,6 +39,16 @@ exists :: (a -> Bool) -> Zipper a -> Bool
 exists predicate zipper = check $ open zipper
     where
         check zipper' = (maybe False predicate $ slider zipper') || (maybe False check $ slideUp zipper')
+
+prune :: (a -> Bool) -> Zipper a -> Zipper a
+prune predicate zipper = fltr $ open zipper
+    where
+        fltr ([], []) = ([], [])
+        fltr ([], r : rs) | predicate r = ([], r : rs)
+        fltr ([], r : rs) = ([], rs)
+        fltr (l : ls, []) = fltr (ls, [l])
+        fltr (l : ls, r : rs) | predicate r = fltr (ls, l : r : rs)
+        fltr (l : ls, _ : rs) = fltr (ls, l : rs)
 
 slideTo :: (a -> Bool) -> Zipper a -> Maybe (Zipper a)
 slideTo predicate zipper = slideTo' $ open zipper

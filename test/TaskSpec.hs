@@ -2,7 +2,7 @@ module TaskSpec where
 
 import Test.Hspec
 import Task
-import Data.Time (iso8601DateFormat)
+import Lib (getLocalTime)
 
 spec :: Spec
 spec = do

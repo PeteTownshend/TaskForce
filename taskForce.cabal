@@ -21,6 +21,7 @@ source-repository head
 
 library
   exposed-modules:
+      Report
       Lib
       Task
       AppState
@@ -70,6 +71,7 @@ test-suite taskForce-test
     , AppStateSpec
     , TaskSpec
     , ZipperSpec
+    , ReportSpec
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N

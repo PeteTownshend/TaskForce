@@ -85,6 +85,39 @@ spec = do
             exists ((==) 5) ([3, 4], [2, 1, 0])   `shouldBe` False
             exists ((==) 5) ([4], [3, 2, 1, 0])   `shouldBe` False
             exists ((==) 5) ([], [4, 3, 2, 1, 0]) `shouldBe` False
+            exists ((==) 5) ([], [])              `shouldBe` False
+
+    describe "prune" $ do
+
+        it "should filter valid elements" $ do
+
+            prune ((==) 0) ([0, 1, 2, 3, 4], []) `shouldBe` ([], [0])
+            prune ((==) 0) ([1, 2, 3, 4], [0])   `shouldBe` ([], [0])
+            prune ((==) 0) ([2, 3, 4], [1, 0])   `shouldBe` ([], [0])
+            prune ((==) 0) ([3, 4], [2, 1, 0])   `shouldBe` ([], [0])
+            prune ((==) 0) ([4], [3, 2, 1, 0])   `shouldBe` ([], [0])
+            prune ((==) 0) ([], [4, 3, 2, 1, 0]) `shouldBe` ([], [0])
+
+            prune (\i -> mod i 2 == 0) ([0, 1, 2, 3, 4], []) `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([1, 2, 3, 4], [0])   `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([2, 3, 4], [1, 0])   `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([3, 4], [2, 1, 0])   `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([4], [3, 2, 1, 0])   `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([], [4, 3, 2, 1, 0]) `shouldBe` ([], [4, 2, 0])
+            prune (\i -> mod i 2 == 0) ([], [])              `shouldBe` ([], [])
+            
+            prune (const True) ([0, 1, 2, 3, 4], []) `shouldBe` ([], [4, 3, 2, 1, 0])
+            prune (const True) ([1, 2, 3, 4], [0])   `shouldBe` ([], [4, 3, 2, 1, 0])
+            prune (const True) ([2, 3, 4], [1, 0])   `shouldBe` ([], [4, 3, 2, 1, 0])
+            prune (const True) ([3, 4], [2, 1, 0])   `shouldBe` ([], [4, 3, 2, 1, 0])
+            prune (const True) ([4], [3, 2, 1, 0])   `shouldBe` ([], [4, 3, 2, 1, 0])
+            prune (const True) ([], [4, 3, 2, 1, 0]) `shouldBe` ([], [4, 3, 2, 1, 0])
+
+            prune (const False) ([0, 1, 2, 3, 4], []) `shouldBe` ([], [])
+            prune (const False) ([2, 3, 4], [1, 0])   `shouldBe` ([], [])
+            prune (const False) ([3, 4], [2, 1, 0])   `shouldBe` ([], [])
+            prune (const False) ([4], [3, 2, 1, 0])   `shouldBe` ([], [])
+            prune (const False) ([], [4, 3, 2, 1, 0]) `shouldBe` ([], [])
 
     describe "slideTo" $ do
 

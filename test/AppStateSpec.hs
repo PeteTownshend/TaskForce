@@ -3,6 +3,7 @@ module AppStateSpec where
 import Test.Hspec
 import Task
 import AppState
+import Lib (getLocalTime)
 
 spec :: Spec
 spec = do
@@ -12,6 +13,27 @@ spec = do
         task2 = Task { tag = "2", description = "two",   history = [] }
         task3 = Task { tag = "3", description = "three", history = [] }
         task4 = Task { tag = "4", description = "four",  history = [] }
+
+    describe "deleteTask" $ do
+
+        it "should remove a task" $ do
+
+            deleteTask "0" ([task1, task2, task3, task4], []) `shouldBe` ([], [task4, task3, task2, task1])
+            deleteTask "0" ([task2, task3, task4], [task1])   `shouldBe` ([], [task4, task3, task2, task1])
+            deleteTask "0" ([task3, task4], [task2, task1])   `shouldBe` ([], [task4, task3, task2, task1])
+            deleteTask "0" ([task4], [task3, task2, task1])   `shouldBe` ([], [task4, task3, task2, task1])
+            deleteTask "0" ([], [task4, task3, task2, task1]) `shouldBe` ([], [task4, task3, task2, task1])
+            deleteTask "2" ([task1, task2, task3, task4], []) `shouldBe` ([], [task4, task3, task1])
+            deleteTask "2" ([task2, task3, task4], [task1])   `shouldBe` ([], [task4, task3, task1])
+            deleteTask "2" ([task3, task4], [task2, task1])   `shouldBe` ([], [task4, task3, task1])
+            deleteTask "2" ([task4], [task3, task2, task1])   `shouldBe` ([], [task4, task3, task1])
+            deleteTask "2" ([], [task4, task3, task2, task1]) `shouldBe` ([], [task4, task3, task1])
+            deleteTask "1" ([], [task1]) `shouldBe` ([], [])
+            deleteTask "1" ([task1], []) `shouldBe` ([], [])
+            deleteTask "1" ([], []) `shouldBe` ([], [])
+            deleteTask "2" ([], [task1]) `shouldBe` ([], [task1])
+            deleteTask "2" ([task1], []) `shouldBe` ([], [task1])
+            deleteTask "2" ([], []) `shouldBe` ([], [])
 
     describe "addTask" $ do
 

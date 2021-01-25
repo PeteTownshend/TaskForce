@@ -9,11 +9,11 @@ import qualified System.Console.StructuredCLI as CLI
 
 logo :: String
 logo = unlines [
-      "   __             __   ______                    "
-    , "  / /_____ ______/ /__/ ____/___  _____________  "
-    , " / __/ __ `/ ___/ //_/ /_  / __ \\/ ___/ ___/ _ \\ "
-    , "/ /_/ /_/ (__  ) ,< / __/ / /_/ / /  / /__/  __/ "
-    , "\\__/\\__,_/____/_/|_/_/    \\____/_/   \\___/\\___/  "
+    "   __             __   ______                    ",
+    "  / /_____ ______/ /__/ ____/___  _____________  ",
+    " / __/ __ `/ ___/ //_/ /_  / __ \\/ ___/ ___/ _ \\ ",
+    "/ /_/ /_/ (__  ) ,< / __/ / /_/ / /  / /__/  __/ ",
+    "\\__/\\__,_/____/_/|_/_/    \\____/_/   \\___/\\___/  "
     ]
 
 main :: IO ()
@@ -24,11 +24,14 @@ main = do
     where 
         run = do
             result <- CLI.runCLI "" settings $ do
-                getTasksC
-                taskC
-                shutdownC
+                taskCommand
+                tasksCommand
+                deleteCommand
+                reportCommand
+                quitCommand
+                runCommand
             either (error.show) return result
         settings = def { 
-              CLI.getBanner = logo ++ "\nCLI for task management"
-            , CLI.getHistory = Just ".taskForceCLI.history"
+            CLI.getBanner = logo ++ "\nCLI for task management",
+            CLI.getHistory = Just ".taskForceCLI.history"
         }
