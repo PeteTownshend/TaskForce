@@ -7,10 +7,19 @@ module Report (
     getMinutes
     ) where
 
-import Zipper
+import Zipper ( toList )
 import Task
-import AppState
+    ( Task(tag, description, history),
+      Tag,
+      History,
+      Event(Created, End, Start) )
+import AppState ( AppState )
 import Data.Time
+    ( nominalDiffTimeToSeconds,
+      formatTime,
+      defaultTimeLocale,
+      diffLocalTime,
+      LocalTime )
 import Data.Fixed                   (div', divMod')
 import Data.Either                  (fromRight)
 
@@ -58,5 +67,5 @@ report = map toLine . toList
 reportStrings :: Report -> [String]
 reportStrings = map toString
     where
-        toString (tag, description, created, (hs, _)) 
-            = showLocalTime created ++ " " ++ show hs ++ " hours, " ++ tag ++ ", " ++ description
+        toString (tag, description, created, (hs, ms)) 
+            = showLocalTime created ++ " " ++ show hs ++ "h " ++ show ms ++ "m: "++ tag ++ " - " ++ description

@@ -1,8 +1,8 @@
 module TaskSpec where
 
-import Test.Hspec
-import Task
-import Lib (getLocalTime)
+import Test.Hspec ( Spec, describe, it, shouldBe )
+import Task ( Task(..), Event(Start, End), updateTaskHistory )
+import StateM (getLocalTime)
 
 spec :: Spec
 spec = do

@@ -1,70 +1,88 @@
 module Zipper (
-      Zipper
-    , toList
-    , slider
-    , slideUp
-    , slideDown
-    , open
-    , exists
-    , prune
-    , slideTo
-    , modify
-    , add
+    Zipper(..),
+    toList,
+    slider,
+    slideUp,
+    slideDown,
+    open,
+    exists,
+    prune,
+    slideTo,
+    modify,
+    add
     ) where
 
 import Data.Maybe (maybe)
 
-type Zipper a = ([a], [a])
+data Zipper a
+    = Empty
+    | Zipper [a] a [a]
+    deriving (Eq, Show, Read)
 
-toList :: Zipper a -> [a]
-toList (ls, rs) = reverse rs ++ ls
+instance Functor Zipper where
+    fmap _ Empty            = Empty
+    fmap f (Zipper ds x us) = Zipper (fmap f ds) (f x) (fmap f us)
+    
+slideUp :: Zipper a -> Zipper a
+slideUp Empty                = Empty
+slideUp (Zipper [] x us)     = Zipper [] x us
+slideUp (Zipper (x:ds) u us) = Zipper ds x (u:us)
+
+slideDown :: Zipper a -> Zipper a
+slideDown Empty                = Empty
+slideDown (Zipper ds x [])     = Zipper ds x []
+slideDown (Zipper ds d (x:us)) = Zipper (d:ds) x us
 
 slider :: Zipper a -> Maybe a
-slider (_, []) = Nothing
-slider (_, r : _) = Just r
-
-slideUp :: Zipper a -> Maybe (Zipper a)
-slideUp ([], _) = Nothing
-slideUp (r : ls, rs) = Just (ls, r : rs)
-
-slideDown :: Zipper a -> Maybe (Zipper a)
-slideDown (_, []) = Nothing
-slideDown (ls, l : rs) = Just (l : ls, rs)
+slider Empty          = Nothing
+slider (Zipper _ x _) = Just x
 
 open :: Zipper a -> Zipper a
-open (ls, []) = (ls, [])
-open zipper = maybe zipper open (slideDown zipper)
+open Empty            = Empty
+open (Zipper [] x us) = Zipper [] x us
+open zipper           = open $ slideUp zipper
+
+toList :: Zipper a -> [a]
+toList Empty            = []
+toList (Zipper ds x us) =  x:us ++ ds
 
 exists :: (a -> Bool) -> Zipper a -> Bool
-exists predicate zipper = check $ open zipper
-    where
-        check zipper' = (maybe False predicate $ slider zipper') || (maybe False check $ slideUp zipper')
+exists _ Empty            = False
+exists p (Zipper ds x us) = p x || any p us || any p ds
 
 prune :: (a -> Bool) -> Zipper a -> Zipper a
-prune predicate zipper = fltr $ open zipper
+prune _ Empty = Empty
+prune p (Zipper ds x us) = 
+    if p x 
+    then Zipper ds' x us'
+    else case (ds', us') of
+        ([], [])   -> Empty
+        (x:ls, []) -> Zipper ls x []
+        (ls, x:rs) -> Zipper ls x rs
     where
-        fltr ([], []) = ([], [])
-        fltr ([], r : rs) | predicate r = ([], r : rs)
-        fltr ([], r : rs) = ([], rs)
-        fltr (l : ls, []) = fltr (ls, [l])
-        fltr (l : ls, r : rs) | predicate r = fltr (ls, l : r : rs)
-        fltr (l : ls, _ : rs) = fltr (ls, l : rs)
+        ds' = filter p ds
+        us' = filter p us
 
 slideTo :: (a -> Bool) -> Zipper a -> Maybe (Zipper a)
-slideTo predicate zipper = slideTo' $ open zipper
-    where 
-        checkSlider zipper' = maybe False predicate $ slider zipper'
-        slideTo' zipper' = 
-            if checkSlider zipper'
-            then Just zipper'
-            else (slideUp zipper') >>= slideTo'
+slideTo p = slideTo' . open
+    where
+        checkSlider = maybe False p . slider
+        slideTo' Empty  = Nothing
+        slideTo' (Zipper ds x [])
+            | p x       = Just $ Zipper ds x []
+            | otherwise = Nothing
+        slideTo' zipper =
+            if   checkSlider zipper
+            then Just zipper
+            else slideTo' $ slideDown zipper
 
 modify :: (a -> a) -> (Zipper a -> Zipper a)
-modify _ (ls, []) = (ls, [])
-modify f (ls, r : rs) = (ls, f r : rs)
+modify _ Empty            = Empty
+modify f (Zipper ds x us) = Zipper ds (f x) us
 
-add :: (a -> a -> Bool) -> a -> Zipper a -> Maybe (Zipper a)
-add predicate r zipper@(ls, rs) =
-    if exists (predicate r) zipper
-    then Nothing
-    else Just $ (ls, r : rs)
+add :: (a -> a -> Bool) -> a -> Zipper a -> Zipper a
+add _ x Empty = Zipper [] x []
+add p x zipper@(Zipper ds u us) =
+    if   exists (p x) zipper
+    then zipper
+    else Zipper ds x (u:us)

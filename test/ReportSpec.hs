@@ -1,9 +1,9 @@
 module ReportSpec where
 
-import Test.Hspec
-import Task
-import Lib (getLocalTime)
-import Report
+import Test.Hspec ( Spec, describe, it, shouldBe )
+import Task ( Event(Created, End, Log, Start) )
+import StateM (getLocalTime)
+import Report ( consumption, getMinutes )
 import Data.Time (LocalTime)
 
 spec :: Spec

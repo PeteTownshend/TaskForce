@@ -19,9 +19,9 @@ type History = [(LocalTime, Event)]
 type Tag = String
 
 data Task = Task { 
-      tag :: Tag
-    , description :: String
-    , history :: History
+    tag         :: Tag,
+    description :: String,
+    history     :: History
     } deriving (Show, Read, Eq)
 
 updateTaskHistory :: LocalTime -> Event -> Task -> Task

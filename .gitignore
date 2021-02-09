@@ -9,3 +9,4 @@ stack.yaml.lock
 *.history
 *.iml
 out/
+.vscode/
