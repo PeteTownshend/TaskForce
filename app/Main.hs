@@ -29,18 +29,3 @@ main = do
             CLI.getBanner = logo ++ "\nCLI for task management",
             CLI.getHistory = Just ".taskForceCLI.history"
         }
-
-{-
-h
-5 nach h
-10 nach h
-viertel nach h
-20 nach h
-5 vor halb h+
-halb h+
-5 nach halb h+
-20 vor  h+
-viertel vor h+
-10 vor h+
-5 vor h+
--}
